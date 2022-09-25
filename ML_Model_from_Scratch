@@ -1,0 +1,2337 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/stepheodhiambo2000/BUSINESS-ANALYST/blob/main/ML_Model_from_Scratch\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "62c54b71",
+      "metadata": {
+        "id": "62c54b71"
+      },
+      "source": [
+        "# Building ML Model from Scratch - Kartik Garg"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "a3297dbc",
+      "metadata": {
+        "id": "a3297dbc"
+      },
+      "source": [
+        "### Predicting Coupon Redemption\n",
+        "\n",
+        "XYZ Credit Card company regularly helps it’s merchants understand their data better and take key business decisions accurately by providing machine learning and analytics consulting. ABC is an established Brick & Mortar retailer that frequently conducts marketing campaigns for its diverse product range. As a merchant of XYZ, they have sought XYZ to assist them in their discount marketing process using the power of machine learning. Can you wear the AmExpert hat and help out ABC?\n",
+        " \n",
+        "\n",
+        "Discount marketing and coupon usage are very widely used promotional techniques to attract new customers and to retain & reinforce loyalty of existing customers. The measurement of a consumer’s propensity towards coupon usage and the prediction of the redemption behaviour are crucial parameters in assessing the effectiveness of a marketing campaign.\n",
+        " \n",
+        "\n",
+        "ABC’s promotions are shared across various channels including email, notifications, etc. A number of these campaigns include coupon discounts that are offered for a specific product/range of products. The retailer would like the ability to predict whether customers redeem the coupons received across channels, which will enable the retailer’s marketing team to accurately design coupon construct, and develop more precise and targeted marketing strategies.\n",
+        " \n",
+        "\n",
+        "The data available in this problem contains the following information, including the details of a sample of campaigns and coupons used in previous campaigns\n",
+        "\n",
+        "    User Demographic Details\n",
+        "    Campaign and coupon Details\n",
+        "    Product details\n",
+        "    Previous transactions\n",
+        "\n",
+        "Based on previous transaction & performance data from the last 18 campaigns, predict the probability for the next 10 campaigns in the test set for each coupon and customer combination, **whether the customer will redeem the coupon or not?**\n",
+        "\n",
+        "**Dataset link :** [Link is here](https://datahack.analyticsvidhya.com/contest/amexpert-2019-machine-learning-hackathon/#ProblemStatement )\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "df30f5b9",
+      "metadata": {
+        "id": "df30f5b9"
+      },
+      "source": [
+        "### Schema of dataset"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "69723d21",
+      "metadata": {
+        "id": "69723d21"
+      },
+      "source": [
+        "![Screenshot-2019-09-28-at-8.58.32-PM.png](attachment:Screenshot-2019-09-28-at-8.58.32-PM.png)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "bf0d3ade",
+      "metadata": {
+        "id": "bf0d3ade"
+      },
+      "source": []
+    },
+    {
+      "cell_type": "markdown",
+      "id": "6963bea0",
+      "metadata": {
+        "id": "6963bea0"
+      },
+      "source": [
+        "----------------------------\n",
+        "\n",
+        "## Importing Libraries\n",
+        "----------------------------"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "b6b75f11",
+      "metadata": {
+        "id": "b6b75f11"
+      },
+      "outputs": [],
+      "source": [
+        "#  Libraries\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "\n",
+        "# Data processing, metrics and modeling\n",
+        "from sklearn.preprocessing import LabelEncoder\n",
+        "from sklearn.model_selection import train_test_split, StratifiedKFold,KFold\n",
+        "\n",
+        "from datetime import datetime\n",
+        "from sklearn.metrics import precision_score, recall_score, confusion_matrix, accuracy_score, roc_auc_score, f1_score, roc_curve, auc,precision_recall_curve\n",
+        "from sklearn import metrics\n",
+        "from sklearn import preprocessing\n",
+        "\n",
+        "\n",
+        "# Suppress warning\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\")\n",
+        "\n",
+        "\n",
+        "# Plots\n",
+        "import seaborn as sns\n",
+        "import matplotlib.pyplot as plt\n",
+        "%matplotlib inline\n",
+        "from matplotlib import rcParams"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "c4a7dc94",
+      "metadata": {
+        "id": "c4a7dc94"
+      },
+      "source": [
+        "----------------------------\n",
+        "\n",
+        "## Reading Data\n",
+        "\n",
+        "----------------------------"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "f07e980b",
+      "metadata": {
+        "id": "f07e980b"
+      },
+      "outputs": [],
+      "source": [
+        "train = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\train.csv\")\n",
+        "test  = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\test_QyjYwdj.csv\") # will not be using since test data was evaluated on online platform"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "1f92448b",
+      "metadata": {
+        "id": "1f92448b"
+      },
+      "outputs": [],
+      "source": [
+        "campaign_data = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\campaign_data.csv\")\n",
+        "coupon_item_mapping = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\coupon_item_mapping.csv\")\n",
+        "customer_demographics = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\customer_demographics.csv\")\n",
+        "customer_transaction_data = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\customer_transaction_data.csv\")\n",
+        "item_data = pd.read_csv(r\"C:\\Users\\Kartik\\Desktop\\AnalyticsVidya\\train_AUpWtIz\\item_data.csv\")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "8fc1ea35",
+      "metadata": {
+        "id": "8fc1ea35"
+      },
+      "source": [
+        "## Assessing and Understanding the Data"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "0718a2ef",
+      "metadata": {
+        "id": "0718a2ef",
+        "outputId": "d777efc7-6795-4d1a-bfa4-adb511932eed"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 78369 entries, 0 to 78368\n",
+            "Data columns (total 5 columns):\n",
+            " #   Column             Non-Null Count  Dtype\n",
+            "---  ------             --------------  -----\n",
+            " 0   id                 78369 non-null  int64\n",
+            " 1   campaign_id        78369 non-null  int64\n",
+            " 2   coupon_id          78369 non-null  int64\n",
+            " 3   customer_id        78369 non-null  int64\n",
+            " 4   redemption_status  78369 non-null  int64\n",
+            "dtypes: int64(5)\n",
+            "memory usage: 3.0 MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "train.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "be460833",
+      "metadata": {
+        "id": "be460833",
+        "outputId": "f08b99d3-9b33-4ec6-bfb5-97a63b8f8039"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 28 entries, 0 to 27\n",
+            "Data columns (total 4 columns):\n",
+            " #   Column         Non-Null Count  Dtype \n",
+            "---  ------         --------------  ----- \n",
+            " 0   campaign_id    28 non-null     int64 \n",
+            " 1   campaign_type  28 non-null     object\n",
+            " 2   start_date     28 non-null     object\n",
+            " 3   end_date       28 non-null     object\n",
+            "dtypes: int64(1), object(3)\n",
+            "memory usage: 1.0+ KB\n"
+          ]
+        }
+      ],
+      "source": [
+        "campaign_data.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "3febf24b",
+      "metadata": {
+        "id": "3febf24b",
+        "outputId": "d1e59b1f-736a-4799-ae52-ccaee0230adb"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 92663 entries, 0 to 92662\n",
+            "Data columns (total 2 columns):\n",
+            " #   Column     Non-Null Count  Dtype\n",
+            "---  ------     --------------  -----\n",
+            " 0   coupon_id  92663 non-null  int64\n",
+            " 1   item_id    92663 non-null  int64\n",
+            "dtypes: int64(2)\n",
+            "memory usage: 1.4 MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "coupon_item_mapping.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "adfbc7a6",
+      "metadata": {
+        "id": "adfbc7a6",
+        "outputId": "01251c7d-dbaa-48db-ca80-748078b04672"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 760 entries, 0 to 759\n",
+            "Data columns (total 7 columns):\n",
+            " #   Column          Non-Null Count  Dtype \n",
+            "---  ------          --------------  ----- \n",
+            " 0   customer_id     760 non-null    int64 \n",
+            " 1   age_range       760 non-null    object\n",
+            " 2   marital_status  431 non-null    object\n",
+            " 3   rented          760 non-null    int64 \n",
+            " 4   family_size     760 non-null    object\n",
+            " 5   no_of_children  222 non-null    object\n",
+            " 6   income_bracket  760 non-null    int64 \n",
+            "dtypes: int64(3), object(4)\n",
+            "memory usage: 41.7+ KB\n"
+          ]
+        }
+      ],
+      "source": [
+        "customer_demographics.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "c883be56",
+      "metadata": {
+        "id": "c883be56",
+        "outputId": "ed40c1c4-cabf-41f8-d1c2-ca1472f99bba"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 1324566 entries, 0 to 1324565\n",
+            "Data columns (total 7 columns):\n",
+            " #   Column           Non-Null Count    Dtype  \n",
+            "---  ------           --------------    -----  \n",
+            " 0   date             1324566 non-null  object \n",
+            " 1   customer_id      1324566 non-null  int64  \n",
+            " 2   item_id          1324566 non-null  int64  \n",
+            " 3   quantity         1324566 non-null  int64  \n",
+            " 4   selling_price    1324566 non-null  float64\n",
+            " 5   other_discount   1324566 non-null  float64\n",
+            " 6   coupon_discount  1324566 non-null  float64\n",
+            "dtypes: float64(3), int64(3), object(1)\n",
+            "memory usage: 70.7+ MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "customer_transaction_data.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "73f65d19",
+      "metadata": {
+        "id": "73f65d19",
+        "outputId": "887b1f04-38d2-453e-8f6a-882a3ed01007"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 74066 entries, 0 to 74065\n",
+            "Data columns (total 4 columns):\n",
+            " #   Column      Non-Null Count  Dtype \n",
+            "---  ------      --------------  ----- \n",
+            " 0   item_id     74066 non-null  int64 \n",
+            " 1   brand       74066 non-null  int64 \n",
+            " 2   brand_type  74066 non-null  object\n",
+            " 3   category    74066 non-null  object\n",
+            "dtypes: int64(2), object(2)\n",
+            "memory usage: 2.3+ MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "item_data.info()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "f7454811",
+      "metadata": {
+        "id": "f7454811"
+      },
+      "source": [
+        "#### Checking Duplicates"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "bf569313",
+      "metadata": {
+        "id": "bf569313",
+        "outputId": "ec6b3b2c-8fdd-4dac-f2b7-b08587bf0970"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "execution_count": 10,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "train.duplicated().sum()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "8307248b",
+      "metadata": {
+        "id": "8307248b",
+        "outputId": "67381f32-5527-4a52-ca03-a2533ff5cca5"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "execution_count": 11,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "campaign_data.duplicated().sum()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "fd86693a",
+      "metadata": {
+        "id": "fd86693a",
+        "outputId": "64cde393-a2e3-4364-8ed8-8efa2876183f"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "execution_count": 12,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "coupon_item_mapping.duplicated().sum()\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "d85f008a",
+      "metadata": {
+        "id": "d85f008a",
+        "outputId": "28136815-bea0-41fc-e429-01497df708da"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "execution_count": 13,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "customer_demographics.duplicated().sum()\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "3294410b",
+      "metadata": {
+        "id": "3294410b",
+        "outputId": "2e47cb1b-5571-4e87-b577-7a77efd3dead"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "2916"
+            ]
+          },
+          "execution_count": 14,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "customer_transaction_data.duplicated().sum()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "1aba7d60",
+      "metadata": {
+        "id": "1aba7d60",
+        "outputId": "48c771cc-8dcb-43a6-e19f-10a7881cfccc"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0"
+            ]
+          },
+          "execution_count": 15,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "item_data.duplicated().sum()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "9f2f60cb",
+      "metadata": {
+        "id": "9f2f60cb"
+      },
+      "source": [
+        "#### Checking for unique and missing data across different tables basis id's"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "6dc8af66",
+      "metadata": {
+        "id": "6dc8af66",
+        "outputId": "815101bc-5b2a-46b7-c1ff-14e1eaef3108"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "id                   78369\n",
+              "campaign_id             18\n",
+              "coupon_id              866\n",
+              "customer_id           1428\n",
+              "redemption_status        2\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 16,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "train.nunique()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "f32d13c4",
+      "metadata": {
+        "id": "f32d13c4",
+        "outputId": "c94e5de6-be7a-4361-a5c2-223aba8b4a97"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "customer_id       760\n",
+              "age_range           6\n",
+              "marital_status      2\n",
+              "rented              2\n",
+              "family_size         5\n",
+              "no_of_children      3\n",
+              "income_bracket     12\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 17,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "customer_demographics.nunique()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "83bd091d",
+      "metadata": {
+        "id": "83bd091d",
+        "outputId": "572eb38a-3001-4887-9b0c-fd5f033219f0"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "campaign_id      28\n",
+              "campaign_type     2\n",
+              "start_date       25\n",
+              "end_date         26\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 18,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "campaign_data.nunique()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "e7de05de",
+      "metadata": {
+        "id": "e7de05de",
+        "outputId": "c5ab22d8-d943-4e47-a6c9-24a0c29fb3fe"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "coupon_id     1116\n",
+              "item_id      36289\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 19,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "coupon_item_mapping.nunique()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "5a3176bc",
+      "metadata": {
+        "id": "5a3176bc",
+        "outputId": "a18892da-2e19-4e31-9de0-0381d4e04ba5"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "date                 549\n",
+              "customer_id         1582\n",
+              "item_id            74063\n",
+              "quantity            9252\n",
+              "selling_price       4923\n",
+              "other_discount      1418\n",
+              "coupon_discount      232\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 20,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "customer_transaction_data.nunique()\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "4477e0ec",
+      "metadata": {
+        "id": "4477e0ec",
+        "outputId": "d04cfe40-43ff-4f3d-a2c5-73dca5cabaaf"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "item_id       74066\n",
+              "brand          5528\n",
+              "brand_type        2\n",
+              "category         19\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 21,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "item_data.nunique()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "87881b21",
+      "metadata": {
+        "id": "87881b21",
+        "outputId": "2a1167eb-752a-450b-c548-8927f2d1f997"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0    77640\n",
+              "1      729\n",
+              "Name: redemption_status, dtype: int64"
+            ]
+          },
+          "execution_count": 22,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "## Checking ratio of 1s to 0s\n",
+        "\n",
+        "train.redemption_status.value_counts()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "a8b84e2e",
+      "metadata": {
+        "id": "a8b84e2e",
+        "outputId": "f83dc8f5-4a29-4f00-f85c-9a3472268a2a"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0.009389489953632148"
+            ]
+          },
+          "execution_count": 23,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "729/77640\n",
+        "\n",
+        "## Only ~1% of ratio of 1s to 0s   -- Difficult problem to solve\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "c8599f9a",
+      "metadata": {
+        "id": "c8599f9a"
+      },
+      "source": [
+        "**Here we see accuracy will not be the only right metric. Because even if I simply predict all data as 0. I will be 99% accurate with my predictions**"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "4d6595fc",
+      "metadata": {
+        "id": "4d6595fc"
+      },
+      "source": [
+        "## Minimum steps to follow : ( MVPs approach - Minimum Viable Product)\n",
+        "\n",
+        "1. Base model run for baseline accuracy\n",
+        "2. Analyze and transform 3-4 columns at least \n",
+        "    - Check and transform campaign data - **duration of campaign and then average duaration per campaign can be computed**\n",
+        "    - Transform and bring campaign mapping table - **Coupon wise comma separated Items can be brought in and then further analyzed in train data**\n",
+        "\n",
+        "\n",
+        "3. Start with required columns (no need to start using all columns in one go)\n",
+        "4. See a better merger ways\n",
+        "5. Transform data into a more sensible data for model.\n",
+        "6. Create model on new better data and see change in accuracy parameters. ( Iterate as needed )  -  **Homework**"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "b9731a51",
+      "metadata": {
+        "id": "b9731a51"
+      },
+      "source": [
+        "### COMMON CLEANING STEPS TO CHECK: \n",
+        "\n",
+        "  \n",
+        "1.  Duplicates and missing values in data ?\n",
+        "2.  Datatypes issues?\n",
+        "3.  Column names for improper names ?\n",
+        "3.  Outliers and their treatment if any?\n",
+        "4.  Drop all non significant columns. (ex: DIMENSION REDUCTION USING CORRELATION AND RANDOM VARIABLE INSERTION)\n",
+        "5.  Need to do binning, encoding and caping for various values ?"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "b21514f9",
+      "metadata": {
+        "id": "b21514f9"
+      },
+      "source": [
+        "### Issues Identified/ Need to be solved:\n",
+        "\n",
+        "1. Missing values in customer demographics - marital status & no of children\n",
+        "2. Need to transform (like grouping) & combine datasets and make them correspond to each customer-coupon combination in train and test data\n",
+        "3. Data type issues in campaign_data.csv : **Start date, End date** ; customer_transaction_data.csv: **date columns** \n",
+        "4. Analyze each column distribution and then do binning, encoding\n",
+        "5. Variable creation from Item - coupon combination etc\n",
+        "6. Feature Reduction ( Checking dependence of different columns on each other and target column)\n",
+        "7. Sampling to resolve for very less data issue for class etc"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "bee77a4b",
+      "metadata": {
+        "id": "bee77a4b"
+      },
+      "source": [
+        "### Create copies of datasets :\n",
+        "    "
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "9e8af321",
+      "metadata": {
+        "id": "9e8af321"
+      },
+      "outputs": [],
+      "source": [
+        "train_c = train.copy()\n",
+        "test_c  = test.copy()\n",
+        "campaign_data_c = campaign_data.copy()\n",
+        "coupon_item_mapping_c = coupon_item_mapping.copy()\n",
+        "customer_demographics_c = customer_demographics.copy()\n",
+        "customer_transaction_data_c = customer_transaction_data.copy()\n",
+        "item_data_c = item_data.copy()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "2bfb9459",
+      "metadata": {
+        "id": "2bfb9459"
+      },
+      "source": [
+        "## Run 1 : Basic Cleaning, transformation for Baseline model and accuracy"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "44f4a85d",
+      "metadata": {
+        "id": "44f4a85d"
+      },
+      "source": [
+        "![Screenshot-2019-09-28-at-8.58.32-PM.png](attachment:Screenshot-2019-09-28-at-8.58.32-PM.png)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "9607620e",
+      "metadata": {
+        "id": "9607620e"
+      },
+      "source": [
+        "Relooking at above flow, we will focus first on a few parameters. So we will consider tables which directly link to Train data,\n",
+        "to make it simple and run model on them with minimal cleaning or transformation. MVP1"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "8ca70347",
+      "metadata": {
+        "id": "8ca70347"
+      },
+      "source": [
+        "### Basic Cleaning"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "fde71e5e",
+      "metadata": {
+        "id": "fde71e5e"
+      },
+      "outputs": [],
+      "source": [
+        "## Drop columns with missing values\n",
+        "customer_demographics.drop(['marital_status', 'no_of_children'], axis=1, inplace = True)\n",
+        "customer_demographics  =  customer_demographics.reset_index(drop=True)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "c7fec04e",
+      "metadata": {
+        "id": "c7fec04e"
+      },
+      "outputs": [],
+      "source": [
+        "## Dropping duplicate entries in this table ( complete entries)\n",
+        "customer_transaction_data.drop_duplicates(keep=\"first\", inplace=True)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "390f65f1",
+      "metadata": {
+        "scrolled": true,
+        "id": "390f65f1",
+        "outputId": "ea52d7e2-35d6-47f7-806a-eb4d2306c457"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "Int64Index: 1321650 entries, 0 to 1324565\n",
+            "Data columns (total 7 columns):\n",
+            " #   Column           Non-Null Count    Dtype  \n",
+            "---  ------           --------------    -----  \n",
+            " 0   date             1321650 non-null  object \n",
+            " 1   customer_id      1321650 non-null  int64  \n",
+            " 2   item_id          1321650 non-null  int64  \n",
+            " 3   quantity         1321650 non-null  int64  \n",
+            " 4   selling_price    1321650 non-null  float64\n",
+            " 5   other_discount   1321650 non-null  float64\n",
+            " 6   coupon_discount  1321650 non-null  float64\n",
+            "dtypes: float64(3), int64(3), object(1)\n",
+            "memory usage: 80.7+ MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "customer_transaction_data.info()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "e21b7dbb",
+      "metadata": {
+        "id": "e21b7dbb"
+      },
+      "source": [
+        "### Transforming and Merging data"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "2ea95224",
+      "metadata": {
+        "id": "2ea95224"
+      },
+      "outputs": [],
+      "source": [
+        "#Merging dataframes - Campaign data\n",
+        "\n",
+        "train_df = pd.merge(train,campaign_data[['campaign_id','campaign_type']],on='campaign_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "455fa048",
+      "metadata": {
+        "id": "455fa048"
+      },
+      "outputs": [],
+      "source": [
+        "# Bringing in customer demographic information in the train table (We see approx. 50% missing data as expected)\n",
+        "\n",
+        "train_df = pd.merge(train_df, customer_demographics, on='customer_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "dc4fefbb",
+      "metadata": {
+        "id": "dc4fefbb"
+      },
+      "source": [
+        "Transforming Transaction data before merging"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "ea0b2211",
+      "metadata": {
+        "id": "ea0b2211"
+      },
+      "outputs": [],
+      "source": [
+        "customer_transaction_data_tf = customer_transaction_data.groupby('customer_id',as_index=False)['quantity','selling_price'].agg({\"quantity\":\"mean\", \"selling_price\":\"mean\"})"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "488e4185",
+      "metadata": {
+        "scrolled": false,
+        "id": "488e4185",
+        "outputId": "cd707055-f9ed-4a79-86ad-85aab05e4866"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 1582 entries, 0 to 1581\n",
+            "Data columns (total 3 columns):\n",
+            " #   Column         Non-Null Count  Dtype  \n",
+            "---  ------         --------------  -----  \n",
+            " 0   customer_id    1582 non-null   int64  \n",
+            " 1   quantity       1582 non-null   float64\n",
+            " 2   selling_price  1582 non-null   float64\n",
+            "dtypes: float64(2), int64(1)\n",
+            "memory usage: 37.2 KB\n"
+          ]
+        }
+      ],
+      "source": [
+        "customer_transaction_data_tf.info()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "931d9ae3",
+      "metadata": {
+        "id": "931d9ae3"
+      },
+      "source": [
+        "merging back the transformed Customer transaction table to train_df"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "f07a9d41",
+      "metadata": {
+        "id": "f07a9d41"
+      },
+      "outputs": [],
+      "source": [
+        "train_df = pd.merge(train_df, customer_transaction_data_tf, on='customer_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "8193d735",
+      "metadata": {
+        "id": "8193d735",
+        "outputId": "bb13269c-de4c-4cf1-cc0c-f9b9d4c439be"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "Int64Index: 78369 entries, 0 to 78368\n",
+            "Data columns (total 12 columns):\n",
+            " #   Column             Non-Null Count  Dtype  \n",
+            "---  ------             --------------  -----  \n",
+            " 0   id                 78369 non-null  int64  \n",
+            " 1   campaign_id        78369 non-null  int64  \n",
+            " 2   coupon_id          78369 non-null  int64  \n",
+            " 3   customer_id        78369 non-null  int64  \n",
+            " 4   redemption_status  78369 non-null  int64  \n",
+            " 5   campaign_type      78369 non-null  object \n",
+            " 6   age_range          43661 non-null  object \n",
+            " 7   rented             43661 non-null  float64\n",
+            " 8   family_size        43661 non-null  object \n",
+            " 9   income_bracket     43661 non-null  float64\n",
+            " 10  quantity           78369 non-null  float64\n",
+            " 11  selling_price      78369 non-null  float64\n",
+            "dtypes: float64(4), int64(5), object(3)\n",
+            "memory usage: 7.8+ MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "train_df.info()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "f6220860",
+      "metadata": {
+        "id": "f6220860"
+      },
+      "source": [
+        " Filling in missing values with \"Unknown\""
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "d94635f6",
+      "metadata": {
+        "id": "d94635f6"
+      },
+      "outputs": [],
+      "source": [
+        "train_df.age_range.fillna('Unknown', inplace = True)\n",
+        "train_df.family_size.fillna('Unknown', inplace = True)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "25c51ac4",
+      "metadata": {
+        "id": "25c51ac4"
+      },
+      "outputs": [],
+      "source": [
+        "train_df.rented.fillna(3.0, inplace = True) #\n",
+        "train_df.income_bracket.fillna(train_df.income_bracket.mean(), inplace = True)\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "ca48c61c",
+      "metadata": {
+        "id": "ca48c61c"
+      },
+      "source": [
+        "Label Encoding categorical columns"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "4572905d",
+      "metadata": {
+        "id": "4572905d"
+      },
+      "outputs": [],
+      "source": [
+        "from sklearn import preprocessing\n",
+        "le = preprocessing.LabelEncoder()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "ffd61760",
+      "metadata": {
+        "id": "ffd61760"
+      },
+      "outputs": [],
+      "source": [
+        "train_df['campaign_type_label'] = le.fit_transform(train_df['campaign_type'])\n",
+        "train_df['age_range_label'] = le.fit_transform(train_df['age_range'])\n",
+        "train_df['rented_label'] = le.fit_transform(train_df['rented'])\n",
+        "train_df['family_size_label'] = le.fit_transform(train_df['family_size'])\n",
+        "train_df['income_bracket_label'] = le.fit_transform(train_df['income_bracket'])\n",
+        "train_df['income_bracket_label'] = le.fit_transform(train_df['income_bracket'])\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "74f843e4",
+      "metadata": {
+        "id": "74f843e4",
+        "outputId": "abb18688-cdae-4d25-9eff-5632bad10204"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "id                      78369\n",
+              "campaign_id                18\n",
+              "coupon_id                 866\n",
+              "customer_id              1428\n",
+              "redemption_status           2\n",
+              "campaign_type               2\n",
+              "age_range                   7\n",
+              "rented                      3\n",
+              "family_size                 6\n",
+              "income_bracket             13\n",
+              "quantity                 1426\n",
+              "selling_price            1428\n",
+              "campaign_type_label         2\n",
+              "age_range_label             7\n",
+              "rented_label                3\n",
+              "family_size_label           6\n",
+              "income_bracket_label       13\n",
+              "dtype: int64"
+            ]
+          },
+          "execution_count": 38,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "train_df.nunique()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "28d929df",
+      "metadata": {
+        "id": "28d929df"
+      },
+      "source": [
+        "Binning quantity and selling price"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "fdd5e17b",
+      "metadata": {
+        "id": "fdd5e17b"
+      },
+      "outputs": [],
+      "source": [
+        "train_df['quantity_labels'] = pd.qcut(train_df['quantity'],5,labels = False)\n",
+        "train_df['selling_price_labels'] = pd.qcut(train_df['selling_price'],5,labels = False)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "bd763329",
+      "metadata": {
+        "id": "bd763329"
+      },
+      "source": [
+        "Dropping non-important columns"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "4ff6b2f3",
+      "metadata": {
+        "id": "4ff6b2f3",
+        "outputId": "35cdb539-a233-45b7-b094-3bc54b72d9a3"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "Int64Index: 78369 entries, 0 to 78368\n",
+            "Data columns (total 19 columns):\n",
+            " #   Column                Non-Null Count  Dtype  \n",
+            "---  ------                --------------  -----  \n",
+            " 0   id                    78369 non-null  int64  \n",
+            " 1   campaign_id           78369 non-null  int64  \n",
+            " 2   coupon_id             78369 non-null  int64  \n",
+            " 3   customer_id           78369 non-null  int64  \n",
+            " 4   redemption_status     78369 non-null  int64  \n",
+            " 5   campaign_type         78369 non-null  object \n",
+            " 6   age_range             78369 non-null  object \n",
+            " 7   rented                78369 non-null  float64\n",
+            " 8   family_size           78369 non-null  object \n",
+            " 9   income_bracket        78369 non-null  float64\n",
+            " 10  quantity              78369 non-null  float64\n",
+            " 11  selling_price         78369 non-null  float64\n",
+            " 12  campaign_type_label   78369 non-null  int32  \n",
+            " 13  age_range_label       78369 non-null  int32  \n",
+            " 14  rented_label          78369 non-null  int64  \n",
+            " 15  family_size_label     78369 non-null  int32  \n",
+            " 16  income_bracket_label  78369 non-null  int64  \n",
+            " 17  quantity_labels       78369 non-null  int64  \n",
+            " 18  selling_price_labels  78369 non-null  int64  \n",
+            "dtypes: float64(4), int32(3), int64(9), object(3)\n",
+            "memory usage: 11.1+ MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "train_df.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "32d8c778",
+      "metadata": {
+        "id": "32d8c778"
+      },
+      "outputs": [],
+      "source": [
+        "train_df.drop(['campaign_id','coupon_id','customer_id','campaign_type','age_range','rented','family_size','income_bracket','quantity','selling_price'], axis=1, inplace = True)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "d0b32d44",
+      "metadata": {
+        "scrolled": true,
+        "id": "d0b32d44",
+        "outputId": "013b833e-a36d-471b-9c1f-a3015ac7e514"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "Int64Index: 78369 entries, 0 to 78368\n",
+            "Data columns (total 9 columns):\n",
+            " #   Column                Non-Null Count  Dtype\n",
+            "---  ------                --------------  -----\n",
+            " 0   id                    78369 non-null  int64\n",
+            " 1   redemption_status     78369 non-null  int64\n",
+            " 2   campaign_type_label   78369 non-null  int32\n",
+            " 3   age_range_label       78369 non-null  int32\n",
+            " 4   rented_label          78369 non-null  int64\n",
+            " 5   family_size_label     78369 non-null  int32\n",
+            " 6   income_bracket_label  78369 non-null  int64\n",
+            " 7   quantity_labels       78369 non-null  int64\n",
+            " 8   selling_price_labels  78369 non-null  int64\n",
+            "dtypes: int32(3), int64(6)\n",
+            "memory usage: 5.1 MB\n"
+          ]
+        }
+      ],
+      "source": [
+        "train_df.info()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "0372dc63",
+      "metadata": {
+        "id": "0372dc63"
+      },
+      "outputs": [],
+      "source": [
+        "train_df = train_df[['id', 'campaign_type_label', 'age_range_label',\n",
+        "       'rented_label', 'family_size_label', 'income_bracket_label',\n",
+        "       'quantity_labels', 'selling_price_labels', 'redemption_status']]"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "3a7bd7f9",
+      "metadata": {
+        "scrolled": false,
+        "id": "3a7bd7f9",
+        "outputId": "ad102e48-24f1-4402-e91f-1b4bc7d84fd1"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "Index(['id', 'campaign_type_label', 'age_range_label', 'rented_label',\n",
+              "       'family_size_label', 'income_bracket_label', 'quantity_labels',\n",
+              "       'selling_price_labels', 'redemption_status'],\n",
+              "      dtype='object')"
+            ]
+          },
+          "execution_count": 44,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "train_df.columns"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "7c1a4b77",
+      "metadata": {
+        "scrolled": true,
+        "id": "7c1a4b77",
+        "outputId": "36e827fb-a8b6-4e7d-e51b-5fdd4879655e"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>campaign_type_label</th>\n",
+              "      <th>age_range_label</th>\n",
+              "      <th>rented_label</th>\n",
+              "      <th>family_size_label</th>\n",
+              "      <th>income_bracket_label</th>\n",
+              "      <th>quantity_labels</th>\n",
+              "      <th>selling_price_labels</th>\n",
+              "      <th>redemption_status</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>id</th>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.002601</td>\n",
+              "      <td>0.000710</td>\n",
+              "      <td>0.000451</td>\n",
+              "      <td>0.000725</td>\n",
+              "      <td>-0.004164</td>\n",
+              "      <td>-0.004840</td>\n",
+              "      <td>-0.007156</td>\n",
+              "      <td>-0.000328</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>campaign_type_label</th>\n",
+              "      <td>0.002601</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>-0.056566</td>\n",
+              "      <td>-0.037237</td>\n",
+              "      <td>-0.013791</td>\n",
+              "      <td>0.054887</td>\n",
+              "      <td>0.023223</td>\n",
+              "      <td>0.038958</td>\n",
+              "      <td>-0.029980</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>age_range_label</th>\n",
+              "      <td>0.000710</td>\n",
+              "      <td>-0.056566</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.859384</td>\n",
+              "      <td>0.767623</td>\n",
+              "      <td>-0.079294</td>\n",
+              "      <td>-0.169104</td>\n",
+              "      <td>-0.078405</td>\n",
+              "      <td>-0.037532</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>rented_label</th>\n",
+              "      <td>0.000451</td>\n",
+              "      <td>-0.037237</td>\n",
+              "      <td>0.859384</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.891719</td>\n",
+              "      <td>-0.100529</td>\n",
+              "      <td>-0.162105</td>\n",
+              "      <td>-0.102323</td>\n",
+              "      <td>-0.043115</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>family_size_label</th>\n",
+              "      <td>0.000725</td>\n",
+              "      <td>-0.013791</td>\n",
+              "      <td>0.767623</td>\n",
+              "      <td>0.891719</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>-0.024480</td>\n",
+              "      <td>-0.139445</td>\n",
+              "      <td>-0.085009</td>\n",
+              "      <td>-0.035469</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>income_bracket_label</th>\n",
+              "      <td>-0.004164</td>\n",
+              "      <td>0.054887</td>\n",
+              "      <td>-0.079294</td>\n",
+              "      <td>-0.100529</td>\n",
+              "      <td>-0.024480</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.069367</td>\n",
+              "      <td>0.212123</td>\n",
+              "      <td>0.015953</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>quantity_labels</th>\n",
+              "      <td>-0.004840</td>\n",
+              "      <td>0.023223</td>\n",
+              "      <td>-0.169104</td>\n",
+              "      <td>-0.162105</td>\n",
+              "      <td>-0.139445</td>\n",
+              "      <td>0.069367</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.476742</td>\n",
+              "      <td>0.034040</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>selling_price_labels</th>\n",
+              "      <td>-0.007156</td>\n",
+              "      <td>0.038958</td>\n",
+              "      <td>-0.078405</td>\n",
+              "      <td>-0.102323</td>\n",
+              "      <td>-0.085009</td>\n",
+              "      <td>0.212123</td>\n",
+              "      <td>0.476742</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.008001</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>redemption_status</th>\n",
+              "      <td>-0.000328</td>\n",
+              "      <td>-0.029980</td>\n",
+              "      <td>-0.037532</td>\n",
+              "      <td>-0.043115</td>\n",
+              "      <td>-0.035469</td>\n",
+              "      <td>0.015953</td>\n",
+              "      <td>0.034040</td>\n",
+              "      <td>0.008001</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "                            id  campaign_type_label  age_range_label  \\\n",
+              "id                    1.000000             0.002601         0.000710   \n",
+              "campaign_type_label   0.002601             1.000000        -0.056566   \n",
+              "age_range_label       0.000710            -0.056566         1.000000   \n",
+              "rented_label          0.000451            -0.037237         0.859384   \n",
+              "family_size_label     0.000725            -0.013791         0.767623   \n",
+              "income_bracket_label -0.004164             0.054887        -0.079294   \n",
+              "quantity_labels      -0.004840             0.023223        -0.169104   \n",
+              "selling_price_labels -0.007156             0.038958        -0.078405   \n",
+              "redemption_status    -0.000328            -0.029980        -0.037532   \n",
+              "\n",
+              "                      rented_label  family_size_label  income_bracket_label  \\\n",
+              "id                        0.000451           0.000725             -0.004164   \n",
+              "campaign_type_label      -0.037237          -0.013791              0.054887   \n",
+              "age_range_label           0.859384           0.767623             -0.079294   \n",
+              "rented_label              1.000000           0.891719             -0.100529   \n",
+              "family_size_label         0.891719           1.000000             -0.024480   \n",
+              "income_bracket_label     -0.100529          -0.024480              1.000000   \n",
+              "quantity_labels          -0.162105          -0.139445              0.069367   \n",
+              "selling_price_labels     -0.102323          -0.085009              0.212123   \n",
+              "redemption_status        -0.043115          -0.035469              0.015953   \n",
+              "\n",
+              "                      quantity_labels  selling_price_labels  redemption_status  \n",
+              "id                          -0.004840             -0.007156          -0.000328  \n",
+              "campaign_type_label          0.023223              0.038958          -0.029980  \n",
+              "age_range_label             -0.169104             -0.078405          -0.037532  \n",
+              "rented_label                -0.162105             -0.102323          -0.043115  \n",
+              "family_size_label           -0.139445             -0.085009          -0.035469  \n",
+              "income_bracket_label         0.069367              0.212123           0.015953  \n",
+              "quantity_labels              1.000000              0.476742           0.034040  \n",
+              "selling_price_labels         0.476742              1.000000           0.008001  \n",
+              "redemption_status            0.034040              0.008001           1.000000  "
+            ]
+          },
+          "execution_count": 45,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "train_df.corr()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "07c439e4",
+      "metadata": {
+        "id": "07c439e4"
+      },
+      "source": [
+        "Creating the model"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "2c8fcbc2",
+      "metadata": {
+        "id": "2c8fcbc2",
+        "outputId": "b9643c29-4c15-4111-9739-fb0f0ae812ff"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            " Train Accuracy: 0.9905345953872817\n",
+            " Test Accuracy: 0.9910293094114918\n",
+            "[0.990478   0.990478   0.99057233 0.99057233 0.99057233]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.9905\n",
+            "Accuracy :  0.9910293094114918\n",
+            "Precision :  0.0\n",
+            "Recall :  0.0\n",
+            "F_score :  0.0\n"
+          ]
+        }
+      ],
+      "source": [
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "from sklearn.model_selection import cross_val_score\n",
+        "\n",
+        "\n",
+        "# Sampling the data to make more sense\n",
+        "\n",
+        "y = train_df.iloc[:, -1]\n",
+        "X = train_df.iloc[:,1:-1]\n",
+        "\n",
+        "#d.dmatrix = xgb.DMatrix(data = X, label = y)\n",
+        "\n",
+        "#split the data into test and train\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, random_state = 0)\n",
+        "\n",
+        "def cross_val(X_train, y_train, model):\n",
+        "\n",
+        "    accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 5)\n",
+        "    print(accuracies)\n",
+        "    return accuracies.mean()\n",
+        "\n",
+        "\n",
+        "def fit_and_evaluate(model):\n",
+        "\n",
+        "    # Train the model\n",
+        "    model.fit(X_train, y_train)\n",
+        "    print(' Train Accuracy: ',end=\"\")\n",
+        "    print(model.score(X_train,y_train))\n",
+        "    print(' Test Accuracy: ',end=\"\")\n",
+        "    print(model.score(X_test,y_test))\n",
+        "    # Make predictions and evalute\n",
+        "    model_pred = model.predict(X_test)\n",
+        "    model_cross = cross_val(X_train, y_train, model)\n",
+        "\n",
+        "    # Return the performance metric\n",
+        "    return model_cross\n",
+        "\n",
+        "\n",
+        "random = RandomForestClassifier(n_estimators= 50, min_samples_split= 2, min_samples_leaf= 1, max_features= 'sqrt', max_depth= 10, bootstrap= True)\n",
+        "random_cross = fit_and_evaluate(random)\n",
+        "\n",
+        "\n",
+        "print('Random Forest Performance on the test set: Cross Validation Score = %0.4f' % random_cross)\n",
+        "\n",
+        "\n",
+        "predt=random.predict(X_test)\n",
+        "cm1   = confusion_matrix(y_test,predt)\n",
+        "total1= cm1[0,0]+cm1[0,1]+cm1[1,0]+cm1[1,1]\n",
+        "\n",
+        "\n",
+        "accuracy1=(cm1[0,0]+cm1[1,1])/total1\n",
+        "print ('Accuracy : ', accuracy1)\n",
+        "\n",
+        "precision = precision_score(y_test,predt, average = 'binary') # TP/(TP+FP)\n",
+        "print('Precision : ', precision)\n",
+        "\n",
+        "recall = recall_score(y_test,predt, average = 'binary') #(TP/(TP+FN))\n",
+        "print('Recall : ', recall)\n",
+        "\n",
+        "f_measure = f1_score(y_test,predt, average = 'binary')\n",
+        "print('F_score : ', f_measure)\n",
+        "\n",
+        "\n",
+        "#random_cross = fit_and_evaluate(random)\n",
+        "\n",
+        "#print('Random Forest Performance on the test set: Cross Validation Score = %0.4f' % random_cross)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "5e2dfc73",
+      "metadata": {
+        "id": "5e2dfc73"
+      },
+      "source": [
+        "All predicted as 0s"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "a9ef0267",
+      "metadata": {
+        "id": "a9ef0267"
+      },
+      "source": [
+        "Need to relook at dsitribution"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "abf8a520",
+      "metadata": {
+        "id": "abf8a520",
+        "outputId": "ace80ee8-42ee-4efb-bac9-37f3eadae1be"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0    77640\n",
+              "1      729\n",
+              "Name: redemption_status, dtype: int64"
+            ]
+          },
+          "execution_count": 47,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "## Checking ratio of 1s to 0s\n",
+        "\n",
+        "train_df.redemption_status.value_counts()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "09743e0e",
+      "metadata": {
+        "scrolled": true,
+        "id": "09743e0e",
+        "outputId": "08656486-c409-43ba-f1e3-51c6cea1ece2"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0.009389489953632148"
+            ]
+          },
+          "execution_count": 48,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "729/77640\n",
+        "\n",
+        "## Only ~1% of ratio of 1s to 0s   -- Difficult problem to solve\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "d2b1444d",
+      "metadata": {
+        "id": "d2b1444d"
+      },
+      "source": [
+        "Segreagating 1s from 0s"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "f53a18fc",
+      "metadata": {
+        "id": "f53a18fc"
+      },
+      "outputs": [],
+      "source": [
+        "## Segregating Errors and Non Errors:\n",
+        "redempted = train_df[train_df.redemption_status == 1]\n",
+        "not_redempted = train_df[train_df.redemption_status == 0]\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "c85c8cdb",
+      "metadata": {
+        "scrolled": true,
+        "id": "c85c8cdb",
+        "outputId": "21f4d731-e349-4c9b-8f54-fba286940839"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            " Train Accuracy: 0.9905345953872817\n",
+            " Test Accuracy: 0.9910293094114918\n",
+            "[0.990478   0.990478   0.99057233 0.99057233 0.99057233]\n",
+            "Model no: 0\n",
+            " Train Accuracy: 0.8738805970149254\n",
+            " Test Accuracy: 0.8611111111111112\n",
+            "[0.85323383 0.84825871 0.87064677 0.85820896 0.85820896]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8577\n",
+            "Accuracy :  0.8611111111111112\n",
+            "Precision :  0.6402877697841727\n",
+            "Recall :  0.28343949044585987\n",
+            "F_score :  0.3929359823399558\n",
+            "Model no: 1\n",
+            " Train Accuracy: 0.8651741293532338\n",
+            " Test Accuracy: 0.8525252525252526\n",
+            "[0.84701493 0.85199005 0.84328358 0.85074627 0.84577114]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8478\n",
+            "Accuracy :  0.8525252525252526\n",
+            "Precision :  0.6037735849056604\n",
+            "Recall :  0.20382165605095542\n",
+            "F_score :  0.30476190476190473\n",
+            "Model no: 2\n",
+            " Train Accuracy: 0.8621890547263682\n",
+            " Test Accuracy: 0.8611111111111112\n",
+            "[0.84577114 0.84701493 0.84328358 0.84328358 0.84701493]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8453\n",
+            "Accuracy :  0.8611111111111112\n",
+            "Precision :  0.7010309278350515\n",
+            "Recall :  0.21656050955414013\n",
+            "F_score :  0.3309002433090025\n",
+            "Model no: 3\n",
+            " Train Accuracy: 0.8656716417910447\n",
+            " Test Accuracy: 0.8570707070707071\n",
+            "[0.84950249 0.85696517 0.84452736 0.85820896 0.8358209 ]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8490\n",
+            "Accuracy :  0.8570707070707071\n",
+            "Precision :  0.6476190476190476\n",
+            "Recall :  0.21656050955414013\n",
+            "F_score :  0.32458233890214794\n",
+            "Model no: 4\n",
+            " Train Accuracy: 0.8624378109452736\n",
+            " Test Accuracy: 0.8565656565656565\n",
+            "[0.84577114 0.83706468 0.84452736 0.84452736 0.8420398 ]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8428\n",
+            "Accuracy :  0.8565656565656565\n",
+            "Precision :  0.65625\n",
+            "Recall :  0.20063694267515925\n",
+            "F_score :  0.30731707317073165\n",
+            "Model no: 5\n",
+            " Train Accuracy: 0.8694029850746269\n",
+            " Test Accuracy: 0.848989898989899\n",
+            "[0.85199005 0.85074627 0.85323383 0.8420398  0.84701493]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8490\n",
+            "Accuracy :  0.848989898989899\n",
+            "Precision :  0.5483870967741935\n",
+            "Recall :  0.27070063694267515\n",
+            "F_score :  0.36247334754797433\n",
+            "Model no: 6\n",
+            " Train Accuracy: 0.8708955223880597\n",
+            " Test Accuracy: 0.8595959595959596\n",
+            "[0.85572139 0.84577114 0.84328358 0.85199005 0.8420398 ]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8478\n",
+            "Accuracy :  0.8595959595959596\n",
+            "Precision :  0.6698113207547169\n",
+            "Recall :  0.22611464968152867\n",
+            "F_score :  0.33809523809523806\n",
+            "Model no: 7\n",
+            " Train Accuracy: 0.8694029850746269\n",
+            " Test Accuracy: 0.8570707070707071\n",
+            "[0.84328358 0.83457711 0.84701493 0.82462687 0.85572139]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8410\n",
+            "Accuracy :  0.8570707070707071\n",
+            "Precision :  0.6302521008403361\n",
+            "Recall :  0.23885350318471338\n",
+            "F_score :  0.34642032332563505\n",
+            "Model no: 8\n",
+            " Train Accuracy: 0.8614427860696517\n",
+            " Test Accuracy: 0.8560606060606061\n",
+            "[0.8420398  0.8358209  0.84079602 0.84328358 0.83457711]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8393\n",
+            "Accuracy :  0.8560606060606061\n",
+            "Precision :  0.6260869565217392\n",
+            "Recall :  0.22929936305732485\n",
+            "F_score :  0.3356643356643357\n",
+            "Model no: 9\n",
+            " Train Accuracy: 0.872636815920398\n",
+            " Test Accuracy: 0.8686868686868687\n",
+            "[0.86567164 0.85447761 0.85199005 0.85820896 0.84328358]\n",
+            "Random Forest Performance on the test set: Cross Validation Score = 0.8547\n",
+            "Accuracy :  0.8686868686868687\n",
+            "Precision :  0.7076923076923077\n",
+            "Recall :  0.2929936305732484\n",
+            "F_score :  0.41441441441441434\n"
+          ]
+        }
+      ],
+      "source": [
+        "\n",
+        "random = RandomForestClassifier(n_estimators= 50, min_samples_split= 2, min_samples_leaf= 1, max_features= 'sqrt', max_depth= 10, bootstrap= True)\n",
+        "random_cross = fit_and_evaluate(random)\n",
+        "\n",
+        "\n",
+        "for i in range (0,10): # Creating an iterative ensembled model over subsamples of data\n",
+        "    \n",
+        "    # Sampling the data to make more sense\n",
+        "    s_redempted = redempted.sample(1000,replace = True,random_state = i*i+i)\n",
+        "    s__not_redempted     = not_redempted.sample(5000,replace = True, random_state = i*i+i)\n",
+        "    df_mod      = pd.concat([s__not_redempted,s_redempted], axis = 0)\n",
+        "\n",
+        "   \n",
+        "    y = df_mod.iloc[:, -1]\n",
+        "    X = df_mod.iloc[:,1:-1]\n",
+        "   \n",
+        "    #d.dmatrix = xgb.DMatrix(data = X, label = y)\n",
+        "   \n",
+        "    #split the data into test and train\n",
+        "    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, random_state = 0)\n",
+        "   \n",
+        "    def cross_val(X_train, y_train, model):\n",
+        "       \n",
+        "        accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 5)\n",
+        "        print(accuracies)\n",
+        "        return accuracies.mean()\n",
+        "\n",
+        "\n",
+        "    def fit_and_evaluate(model):\n",
+        "   \n",
+        "        # Train the model\n",
+        "        model.fit(X_train, y_train)\n",
+        "        print(' Train Accuracy: ',end=\"\")\n",
+        "        print(model.score(X_train,y_train))\n",
+        "        print(' Test Accuracy: ',end=\"\")\n",
+        "        print(model.score(X_test,y_test))\n",
+        "        # Make predictions and evalute\n",
+        "        model_pred = model.predict(X_test)\n",
+        "        model_cross = cross_val(X_train, y_train, model)\n",
+        "   \n",
+        "        # Return the performance metric\n",
+        "        return model_cross\n",
+        "   \n",
+        "    print(\"Model no:\",end = \" \")\n",
+        "    print(i)\n",
+        "   \n",
+        "    random_cross = fit_and_evaluate(random)\n",
+        "   \n",
+        "\n",
+        "    print('Random Forest Performance on the test set: Cross Validation Score = %0.4f' % random_cross)\n",
+        "   \n",
+        "   \n",
+        "    predt=random.predict(X_test)\n",
+        "    cm1   = confusion_matrix(y_test,predt)\n",
+        "    total1= cm1[0,0]+cm1[0,1]+cm1[1,0]+cm1[1,1]\n",
+        "   \n",
+        "   \n",
+        "    accuracy1=(cm1[0,0]+cm1[1,1])/total1\n",
+        "    print ('Accuracy : ', accuracy1)\n",
+        "\n",
+        "    precision = precision_score(y_test,predt, average = 'binary') # TP/(TP+FP)\n",
+        "    print('Precision : ', precision)\n",
+        "\n",
+        "    recall = recall_score(y_test,predt, average = 'binary') #(TP/(TP+FN))\n",
+        "    print('Recall : ', recall)\n",
+        "\n",
+        "    f_measure = f1_score(y_test,predt, average = 'binary')\n",
+        "    print('F_score : ', f_measure)\n",
+        "\n",
+        "   \n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "208a15cf",
+      "metadata": {
+        "scrolled": true,
+        "id": "208a15cf",
+        "outputId": "0de30f3b-77cd-4c87-9ae8-bdcf6a05e420"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Model no: 0\n",
+            " Train Accuracy: 0.8771144278606965\n",
+            " Test Accuracy: 0.8626262626262626\n",
+            "[0.8619403  0.85323383 0.84825871 0.86940299 0.83955224]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8545\n",
+            "Accuracy :  0.8626262626262626\n",
+            "Precision :  0.6140350877192983\n",
+            "Recall :  0.33762057877813506\n",
+            "F_score :  0.43568464730290457\n",
+            "Model no: 1\n",
+            " Train Accuracy: 0.867412935323383\n",
+            " Test Accuracy: 0.8595959595959596\n",
+            "[0.85447761 0.85074627 0.84825871 0.83457711 0.84701493]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8470\n",
+            "Accuracy :  0.8595959595959596\n",
+            "Precision :  0.6170212765957447\n",
+            "Recall :  0.2797427652733119\n",
+            "F_score :  0.38495575221238937\n",
+            "Model no: 2\n",
+            " Train Accuracy: 0.8656716417910447\n",
+            " Test Accuracy: 0.8444444444444444\n",
+            "[0.83457711 0.83955224 0.8420398  0.84452736 0.84452736]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8410\n",
+            "Accuracy :  0.8444444444444444\n",
+            "Precision :  0.5098039215686274\n",
+            "Recall :  0.2508038585209003\n",
+            "F_score :  0.33620689655172414\n",
+            "Model no: 3\n",
+            " Train Accuracy: 0.8681592039800995\n",
+            " Test Accuracy: 0.8621212121212121\n",
+            "[0.84701493 0.85447761 0.82835821 0.84701493 0.82587065]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8405\n",
+            "Accuracy :  0.8621212121212121\n",
+            "Precision :  0.620253164556962\n",
+            "Recall :  0.31511254019292606\n",
+            "F_score :  0.41791044776119407\n",
+            "Model no: 4\n",
+            " Train Accuracy: 0.8766169154228856\n",
+            " Test Accuracy: 0.8565656565656565\n",
+            "[0.84079602 0.86567164 0.83830846 0.86069652 0.83333333]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8478\n",
+            "Accuracy :  0.8565656565656565\n",
+            "Precision :  0.5737704918032787\n",
+            "Recall :  0.33762057877813506\n",
+            "F_score :  0.4251012145748988\n",
+            "Model no: 5\n",
+            " Train Accuracy: 0.8659203980099502\n",
+            " Test Accuracy: 0.8535353535353535\n",
+            "[0.85074627 0.86318408 0.86567164 0.82960199 0.84328358]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8505\n",
+            "Accuracy :  0.8535353535353535\n",
+            "Precision :  0.5755395683453237\n",
+            "Recall :  0.2572347266881029\n",
+            "F_score :  0.3555555555555555\n",
+            "Model no: 6\n",
+            " Train Accuracy: 0.8701492537313433\n",
+            " Test Accuracy: 0.8616161616161616\n",
+            "[0.84701493 0.84701493 0.84452736 0.85572139 0.85074627]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8490\n",
+            "Accuracy :  0.8616161616161616\n",
+            "Precision :  0.635036496350365\n",
+            "Recall :  0.2797427652733119\n",
+            "F_score :  0.3883928571428571\n",
+            "Model no: 7\n",
+            " Train Accuracy: 0.8718905472636815\n",
+            " Test Accuracy: 0.8606060606060606\n",
+            "[0.83955224 0.83208955 0.84950249 0.85572139 0.85323383]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8460\n",
+            "Accuracy :  0.8606060606060606\n",
+            "Precision :  0.6035502958579881\n",
+            "Recall :  0.3279742765273312\n",
+            "F_score :  0.425\n",
+            "Model no: 8\n",
+            " Train Accuracy: 0.8716417910447761\n",
+            " Test Accuracy: 0.8585858585858586\n",
+            "[0.84950249 0.84825871 0.85199005 0.84825871 0.84328358]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8483\n",
+            "Accuracy :  0.8585858585858586\n",
+            "Precision :  0.6165413533834586\n",
+            "Recall :  0.26366559485530544\n",
+            "F_score :  0.36936936936936937\n",
+            "Model no: 9\n",
+            " Train Accuracy: 0.8686567164179104\n",
+            " Test Accuracy: 0.8737373737373737\n",
+            "[0.83830846 0.8420398  0.85199005 0.85820896 0.85323383]\n",
+            "XG Boost Performance on the test set: Cross Validation Score = 0.8488\n",
+            "Accuracy :  0.8737373737373737\n",
+            "Precision :  0.732824427480916\n",
+            "Recall :  0.3086816720257235\n",
+            "F_score :  0.4343891402714933\n"
+          ]
+        }
+      ],
+      "source": [
+        "import xgboost as xgb\n",
+        "from xgboost.sklearn import XGBClassifier\n",
+        "from sklearn.model_selection import cross_val_score\n",
+        "\n",
+        "# Making 5 samples of non-erroneous pros of 2 lakh size each.\n",
+        "\n",
+        "random = XGBClassifier(n_estimators = 100, learning_rate = 0.1)\n",
+        "\n",
+        "for i in range (0,10):\n",
+        "    s_redempted = redempted.sample(1000,replace = True,random_state = i*i+i)\n",
+        "    s__not_redempted     = not_redempted.sample(5000,replace = True, random_state = i*i+i)\n",
+        "    df_mod      = pd.concat([s__not_redempted,s_redempted], axis = 0)\n",
+        "   \n",
+        "   \n",
+        "    y = df_mod.iloc[:, -1]\n",
+        "    X = df_mod.iloc[:,1:-1]\n",
+        "   \n",
+        "    #d.dmatrix = xgb.DMatrix(data = X, label = y)\n",
+        "   \n",
+        "    #split the data into test and train\n",
+        "    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, random_state = 42)\n",
+        "   \n",
+        "    def cross_val(X_train, y_train, model):\n",
+        "       \n",
+        "        accuracies = cross_val_score(estimator = model, X = X_train, y = y_train, cv = 5)\n",
+        "        print(accuracies)\n",
+        "        return accuracies.mean()\n",
+        "\n",
+        "\n",
+        "    def fit_and_evaluate(model):\n",
+        "   \n",
+        "        # Train the model\n",
+        "        model.fit(X_train, y_train)\n",
+        "        print(' Train Accuracy: ',end=\"\")\n",
+        "        print(model.score(X_train,y_train))\n",
+        "        print(' Test Accuracy: ',end=\"\")\n",
+        "        print(model.score(X_test,y_test))\n",
+        "        # Make predictions and evalute\n",
+        "        model_pred = model.predict(X_test)\n",
+        "        model_cross = cross_val(X_train, y_train, model)\n",
+        "   \n",
+        "        # Return the performance metric\n",
+        "        return model_cross\n",
+        "   \n",
+        "    print(\"Model no:\",end = \" \")\n",
+        "    print(i)\n",
+        "   \n",
+        "    random_cross = fit_and_evaluate(random)\n",
+        "   \n",
+        "\n",
+        "    print('XG Boost Performance on the test set: Cross Validation Score = %0.4f' % random_cross)\n",
+        "   \n",
+        "   \n",
+        "    predt=random.predict(X_test)\n",
+        "    cm1   = confusion_matrix(y_test,predt)\n",
+        "    total1= cm1[0,0]+cm1[0,1]+cm1[1,0]+cm1[1,1]\n",
+        "   \n",
+        "   \n",
+        "    accuracy1=(cm1[0,0]+cm1[1,1])/total1\n",
+        "    print ('Accuracy : ', accuracy1)\n",
+        "\n",
+        "    precision = precision_score(y_test,predt, average = 'binary') # TP/(TP+FP)\n",
+        "    print('Precision : ', precision)\n",
+        "\n",
+        "    recall = recall_score(y_test,predt, average = 'binary') #(TP/(TP+FN))\n",
+        "    print('Recall : ', recall)\n",
+        "\n",
+        "    f_measure = f1_score(y_test,predt, average = 'binary')\n",
+        "    print('F_score : ', f_measure)\n",
+        "\n",
+        "      \n",
+        "   \n",
+        "   \n",
+        "    #random_cross = fit_and_evaluate(random)\n",
+        "\n",
+        "    #print('Random Forest Performance on the test set: Cross Validation Score = %0.4f' % random_cross)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "83c6028b",
+      "metadata": {
+        "id": "83c6028b"
+      },
+      "source": [
+        "**One intuitive way to analyze and transform such data**"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "2fa3df70",
+      "metadata": {
+        "id": "2fa3df70"
+      },
+      "outputs": [],
+      "source": [
+        "#Merging dataframes - Campaign data\n",
+        "\n",
+        "train_df2 = pd.merge(train,campaign_data[['campaign_id','campaign_type']],on='campaign_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "8f88757b",
+      "metadata": {
+        "id": "8f88757b"
+      },
+      "outputs": [],
+      "source": [
+        "# Bringing in customer demographic information in the train table (We see approx. 50% missing data as expected)\n",
+        "\n",
+        "train_df2 = pd.merge(train_df2, customer_demographics, on='customer_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "3c56b7ec",
+      "metadata": {
+        "id": "3c56b7ec"
+      },
+      "outputs": [],
+      "source": [
+        "customer_transaction_data_tf2 = customer_transaction_data.groupby('customer_id',as_index=False)['quantity','selling_price'].agg({\"quantity\":\"mean\", \"selling_price\":\"mean\"})"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "9fb9d832",
+      "metadata": {
+        "id": "9fb9d832"
+      },
+      "outputs": [],
+      "source": [
+        "train_df2 = pd.merge(train_df2, customer_transaction_data_tf, on='customer_id', how='left')\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "a4edf193",
+      "metadata": {
+        "id": "a4edf193"
+      },
+      "outputs": [],
+      "source": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "c2442193",
+      "metadata": {
+        "id": "c2442193"
+      },
+      "outputs": [],
+      "source": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "87d7e1cb",
+      "metadata": {
+        "id": "87d7e1cb"
+      },
+      "outputs": [],
+      "source": [
+        "sample_df2 = pd.DataFrame(train_df['quantity'].unique(), columns = [\"Value\"])\n",
+        "\n",
+        "sample_df2.sort_values(['Value'],ascending = True, inplace = True)\n",
+        "#sample_df2.head(10)\n",
+        "\n",
+        "sample_df2['count_Errors'] = [((model_df4['Corr_Flag']==1) & (model_df4['TOT_PCS_CNT']==x)).sum() for x in sample_df2.Value]\n",
+        "\n",
+        "sample_df2['Total_Occr']   = [(model_df4['TOT_PCS_CNT']==x).sum() for x in sample_df2.Value]\n",
+        "\n",
+        "sample_df2['Error_Ratio']  = sample_df2['count_Errors']/sample_df2['Total_Occr']\n",
+        "\n",
+        "sample_df2.sort_values(['Value'],ascending = True, inplace = True)\n",
+        "\n",
+        "\n",
+        "#1.Caping TOT_PCS_CNT with lower and upper limits.\n",
+        "#model_df4['TOT_PCS_CNT'] = model_df4['TOT_PCS_CNT'].clip(upper = 20, lower = 0)\n",
+        "\n",
+        "print(sample_df2.head(40))\n",
+        "#Defining bins for Tot_Pcs_CNT and adding bin labels to database.\n",
+        "\n",
+        "- After sorting sample_df2 multiple no. of times, we found out that there is no general trend that can be observed in Error_Ratio.\n",
+        "- Error ratio is somewhat dependent on TOT_PCS_CNT Value.\n",
+        "- We will do caping at 20\n",
+        "- However an important observation is that majority of the errors and data lies in total_pcs_cnt = 1,2,3 which consist of 1,20,000 rows and 8500 errors of error ratio only 0.6 which is less than average error. Thus dropping this column.\n",
+        "\n",
+        "'''\n",
+        "model_df4['TOT_PCS_CNTS_Weight_Norm'] = 0.0\n",
+        "model_df4.loc[(model_df4[\"TOT_PCS_CNT\"] >= 19),'TOT_PCS_CNTS_Weight_Norm'] = 0.7\n",
+        "model_df4.loc[((model_df4[\"TOT_PCS_CNT\"] >= 4) & (model_df4[\"TOT_PCS_CNT\"] <=19)),'TOT_PCS_CNTS_Weight_Norm'] = 0.5\n",
+        "model_df4.loc[(((model_df4[\"TOT_PCS_CNT\"] > 1) & (model_df4[\"TOT_PCS_CNT\"] <=3))|(model_df4[\"TOT_PCS_CNT\"].isin([15,18,20,21,23,29,32,33,36] ))),'TOT_PCS_CNTS_Weight_Norm'] = 0.3\n",
+        "model_df4.loc[(model_df4[\"TOT_PCS_CNT\"].isin([])),'TOT_PCS_CNTS_Weight_Norm'] = 0.0\n",
+        "model_df4.loc[(model_df4[\"TOT_PCS_CNT\"].isin([])),'TOT_PCS_CNTS_Weight_Norm'] = 1.0\n",
+        "'''\n",
+        "model_df4.drop(['TOT_PCS_CNT'],axis = 1, inplace=True)\n",
+        "model_df4.reset_index(drop=True)\n",
+        "\n",
+        "#print(model_df4.TOT_PCS_CNTS_Weight_Norm.value_counts())\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "b8d92976",
+      "metadata": {
+        "id": "b8d92976"
+      },
+      "outputs": [],
+      "source": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3 (ipykernel)",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.9.12"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
